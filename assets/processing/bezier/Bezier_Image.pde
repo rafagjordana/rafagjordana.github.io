@@ -1,7 +1,7 @@
 /* @pjs preload="images/rafa.png"; */
 
 /**** Configuration ********************************/
-/**/ final int number_of_particles = 1000;
+/**/ final int number_of_particles = 800;
 /**/ final String image_path = "images/rafa.png";
 
 
@@ -16,7 +16,7 @@ void setup() {
 }
 
 void draw() {
-    background(255);
+    background(255,0);
 	translate(640,0)
     animation.draw();
     translate(-640,0)
@@ -124,7 +124,7 @@ class Particle{
     private float _nominal_size;
     private float _speed;
     private boolean _completed_first;
-
+    private boolean _active = true;
     private float _reference_state; //between 0 and 1.03
     private float _state;
     private int _alpha;
@@ -149,14 +149,15 @@ class Particle{
 
     void draw() {
         float t = compute_state();
-        PVector current_point = _trajectory.get_position( t );
-        float   current_size  = _nominal_size * (1 + 5*(1 - t));
-
-        stroke(_color);
-        strokeWeight(current_size);
-        point(current_point.x, current_point.y);
-        
         update_dependent_pixels();
+        if (_active){
+            PVector current_point = _trajectory.get_position( t );
+            float   current_size  = _nominal_size * (1 + 5*(1 - t));
+
+            stroke(_color);
+            strokeWeight(current_size);
+            point(current_point.x, current_point.y);
+        }
     }
 
     float compute_state() {
@@ -166,7 +167,12 @@ class Particle{
 
         float force = attractive_force - repulsive_force;
         _state = constrain(_state + force, 0, 1.03);
-
+        if (_state ==1.03) {
+            _active = false;
+        }
+        else {
+            _active = true;
+        }
         if (_state > 1) {
             _alpha = floor(constrain(2550*(1.03 - _state), 1, 255));
         }
@@ -211,7 +217,7 @@ class Particle{
         float dist = mouse.dist(get_position()) + 1;
 
         int multiplier = 1;
-        if (mousePressed == true) multiplier = 5;
+        if (mousePressed == true) multiplier = 10;
         return 40*multiplier/sq(dist);
     }
 
