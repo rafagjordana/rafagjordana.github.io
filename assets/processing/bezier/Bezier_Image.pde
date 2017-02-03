@@ -7,18 +7,20 @@
 
 BezierAnimation animation;
 PImage test;
+parent.document.getElementById("bezier").setAttribute("style", "background-color:transparent; border:0px;");
 void setup() {
-    size(400,400);
+    size(2000,400);
     background(255);
     frameRate(30);
     animation = new BezierAnimation(number_of_particles, image_path);
-    
-    // test = loadImage(image_path);
+    println("test");	    
 }
 
 void draw() {
-    // background(255);
-    // animation.draw();
+    background(255);
+	translate(800,0)
+    animation.draw();
+    translate(-800,0)
     // image(test, 0, 0);
 }
 
@@ -38,7 +40,6 @@ class BezierAnimation {
         
         _number_of_particles = np;
         _input = loadImage(image_path);
-        _thresholded = loadImage(image_path)
         _result = loadImage(image_path); //todo reuse input
         _input.loadPixels();
 
@@ -47,17 +48,12 @@ class BezierAnimation {
         _useful_pixels = new ArrayList<int>();
         _result.loadPixels();
         for (int i=0; i<_dimx*_dimy; ++i) {
-            float red = red(_input.pixels[i]);
-            float blue = blue(_input.pixels[i]);
-            float green = green(_input.pixels[i]);
-            color c = color(red, green, blue, 1);
-            _result.pixels[i] = c;
+            _result.pixels[i] = (_input.pixels[i] & 0x00FFFFFF);
         }
         _result.updatePixels();
         _input.updatePixels();
-        image(_input, 0, 0);
-        // partition_image();
-        // map_pixels_to_particles();
+        partition_image();
+        map_pixels_to_particles();
     }
 
     void draw() {
@@ -65,6 +61,7 @@ class BezierAnimation {
             _particles[i].draw();
         }
         _result.updatePixels();
+        PImage test = _result.copy();
         image(_result,0,0);
     }
 
@@ -72,28 +69,26 @@ class BezierAnimation {
     private void partition_image() {
         _particles = new Particle[_number_of_particles];
 
-        // Ignore white pixels
-        _thresholded.filter(THRESHOLD, 0.98);
-        // _thresholded.loadPixels();
         
-        // for (int i=0; i<_dimx*_dimy; ++i) {
-        //     if (brightness(_thresholded.pixels[i]) == 0) {
-        //         _useful_pixels.append(i);
-        //     }
-        // }
+        // Ignore white pixels
+        for (int i=0; i<_dimx*_dimy; ++i) {
+            if (_input.pixels[i] != -1) {
+                _useful_pixels.add(i);
+            }
+        }
 
-        // // Of the useful pixels, select _number_of_particles at random to act as endpoints
-        // int particles_to_go = _number_of_particles;
-        // for (int i=0; particles_to_go > 0; ++i) {
-        //     float chance = (float) particles_to_go / max((_useful_pixels.size()-i), 1);
-        //     if ( random(1) < chance ) {
-        //         PVector endpoint = coords_from_index(_useful_pixels.get(i));
-        //         color particle_color = _input.pixels[_useful_pixels.get(i)];
-        //         _particles[_number_of_particles - particles_to_go] = 
-        //                 new Particle(endpoint, particle_color, _particle_size, _result);
-        //         particles_to_go--;
-        //     }
-        // }
+        // Of the useful pixels, select _number_of_particles at random to act as endpoints
+        int particles_to_go = _number_of_particles;
+        for (int i=0; particles_to_go > 0; ++i) {
+            float chance = (float) particles_to_go / max((_useful_pixels.size()-i), 1);
+            if ( random(1) < chance ) {
+                PVector endpoint = coords_from_index(_useful_pixels.get(i));
+                color particle_color = _input.pixels[_useful_pixels.get(i)];
+                _particles[_number_of_particles - particles_to_go] = 
+                        new Particle(endpoint, particle_color, _particle_size, _result);
+                particles_to_go--;
+            }
+        }
     }
 
     // Premaps pixels to their closest particle.
@@ -113,6 +108,7 @@ class BezierAnimation {
             }
             _particles[closest_index].add_dependent_pixel(_useful_pixels.get(i));
         }
+        // image(_input, 0, 0);
     }
 
     private PVector coords_from_index(int index) {
@@ -123,7 +119,7 @@ class BezierAnimation {
 class Particle{
     private PImage _result;
     private BezierTrajectory _trajectory;
-    private IntList _dependent_pixels;
+    private ArrayList<int> _dependent_pixels;
     private color _color;
     private float _nominal_size;
     private float _speed;
@@ -135,11 +131,15 @@ class Particle{
 
     Particle(PVector end, color c, float size, PImage result) {
         _result = result;
-        _dependent_pixels = new IntList();
+        _dependent_pixels = new ArrayList<int>();
         _nominal_size = size;
         _color = c;
 
-        PVector start = new PVector(width/2, height/2).add(PVector.random2D().mult(min(height, width)*(1+random(0.5))));
+        PVector start = new PVector(width/2, height/2);
+        PVector random_dir = PVector.random2D();
+        float distance = min(height, width)*(1+random(0.5));
+        random_dir.mult(distance);
+        start.add(random_dir);
         PVector dir_1 = new PVector(2*random(width)-width, 2*random(height)-height);
         PVector dir_2 = new PVector(2*random(width)-width, 2*random(height)-height);
         _trajectory = new BezierTrajectory(start, dir_1, dir_2, end);
@@ -193,7 +193,7 @@ class Particle{
     }
 
     color set_alpha(int alpha, color ref) {
-        ref = ref & ~(255<<24);
+        ref = ref & 0x00FFFFFF;
         ref = ref | alpha<<24;
         return ref;
     }
@@ -203,11 +203,11 @@ class Particle{
     }
 
     void add_dependent_pixel(int index){
-        _dependent_pixels.append(index);
+        _dependent_pixels.add(index);
     }
 
     float mouse_force() {
-        PVector mouse = new PVector(mouseX, mouseY);
+        PVector mouse = new PVector(mouseX-800, mouseY);
         float dist = mouse.dist(get_position()) + 1;
 
         // if (dist > 200)
