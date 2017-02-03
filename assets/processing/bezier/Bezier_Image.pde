@@ -9,7 +9,7 @@ BezierAnimation animation;
 PImage test;
 parent.document.getElementById("bezier").setAttribute("style", "background-color:transparent; border:0px;");
 void setup() {
-    size(2000,400);
+    size(1680,400);
     background(255);
     frameRate(30);
     animation = new BezierAnimation(number_of_particles, image_path);
@@ -18,9 +18,9 @@ void setup() {
 
 void draw() {
     background(255);
-	translate(800,0)
+	translate(640,0)
     animation.draw();
-    translate(-800,0)
+    translate(-640,0)
     // image(test, 0, 0);
 }
 
@@ -207,7 +207,7 @@ class Particle{
     }
 
     float mouse_force() {
-        PVector mouse = new PVector(mouseX-800, mouseY);
+        PVector mouse = new PVector(mouseX-640, mouseY);
         float dist = mouse.dist(get_position()) + 1;
 
         // if (dist > 200)
