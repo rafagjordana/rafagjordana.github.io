@@ -6,7 +6,7 @@ class Particle{
     private float _nominal_size;
     private float _speed;
     private boolean _completed_first;
-
+    private PVector _test;
     private float _reference_state; //between 0 and 1.03
     private float _state;
     private int _alpha;
@@ -16,7 +16,7 @@ class Particle{
         _dependent_pixels = new IntList();
         _nominal_size = size;
         _color = c;
-
+        _test = new PVector(2,2);
         PVector start = new PVector(width/2, height/2).add(PVector.random2D().mult(min(height, width)*(1+random(0.5))));
         PVector dir_1 = new PVector(2*random(width)-width, 2*random(height)-height);
         PVector dir_2 = new PVector(2*random(width)-width, 2*random(height)-height);
@@ -96,7 +96,7 @@ class Particle{
     }
 
     PVector get_end_position(){
-        return _trajectory.get_position(1);
+        return test;
     }
 
     PVector get_position(){

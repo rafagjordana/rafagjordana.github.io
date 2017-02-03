@@ -13,7 +13,6 @@ void setup() {
     background(255);
     frameRate(30);
     animation = new BezierAnimation(number_of_particles, image_path);
-    println("test");	    
 }
 
 void draw() {
@@ -21,7 +20,6 @@ void draw() {
 	translate(640,0)
     animation.draw();
     translate(-640,0)
-    // image(test, 0, 0);
 }
 
 class BezierAnimation {
@@ -29,6 +27,7 @@ class BezierAnimation {
     private int _number_of_particles;
     private PImage _input, _thresholded, _result;
     private Particle _particles[];
+    private PVector _endpoints[];
     private int _dimx, _dimy;
     private int _particle_size = 5;
     private ArrayList<int> _useful_pixels;
@@ -61,15 +60,14 @@ class BezierAnimation {
             _particles[i].draw();
         }
         _result.updatePixels();
-        PImage test = _result.copy();
+        _result.copy()
         image(_result,0,0);
     }
 
     // Partition the image into parts represented by particles
     private void partition_image() {
         _particles = new Particle[_number_of_particles];
-
-        
+        _endpoints = new Particle[_number_of_particles];
         // Ignore white pixels
         for (int i=0; i<_dimx*_dimy; ++i) {
             if (_input.pixels[i] != -1) {
@@ -86,6 +84,7 @@ class BezierAnimation {
                 color particle_color = _input.pixels[_useful_pixels.get(i)];
                 _particles[_number_of_particles - particles_to_go] = 
                         new Particle(endpoint, particle_color, _particle_size, _result);
+                _endpoints[_number_of_particles - particles_to_go] = endpoint;
                 particles_to_go--;
             }
         }
@@ -95,12 +94,14 @@ class BezierAnimation {
     private void map_pixels_to_particles() {
         // @todo - done by brute force at the moment. Improve this.
         for (int i = 0; i<_useful_pixels.size(); ++i) {
-            float min_dist = 100000;
+            float min_dist = 99999999;
             float curr_dist;
             int closest_index = 0;
             for (int j = 0; j<_number_of_particles; j++) {
-                curr_dist = coords_from_index(_useful_pixels.get(i)).dist(
-                        _particles[j].get_end_position());
+                curr_dist = 
+                (_endpoints[j].x-_useful_pixels.get(i) % _dimx) * (_endpoints[j].x-_useful_pixels.get(i) % _dimx) +
+                (_endpoints[j].y-_useful_pixels.get(i) / _dimx) * (_endpoints[j].y-_useful_pixels.get(i) / _dimx);
+
                 if (curr_dist < min_dist) {
                     min_dist = curr_dist;
                     closest_index = j;
@@ -108,7 +109,6 @@ class BezierAnimation {
             }
             _particles[closest_index].add_dependent_pixel(_useful_pixels.get(i));
         }
-        // image(_input, 0, 0);
     }
 
     private PVector coords_from_index(int index) {
@@ -119,7 +119,7 @@ class BezierAnimation {
 class Particle{
     private PImage _result;
     private BezierTrajectory _trajectory;
-    private ArrayList<int> _dependent_pixels;
+    public ArrayList<int> _dependent_pixels;
     private color _color;
     private float _nominal_size;
     private float _speed;
@@ -210,8 +210,6 @@ class Particle{
         PVector mouse = new PVector(mouseX-640, mouseY);
         float dist = mouse.dist(get_position()) + 1;
 
-        // if (dist > 200)
-        //     return 0;
         int multiplier = 1;
         if (mousePressed == true) multiplier = 5;
         return 40*multiplier/sq(dist);

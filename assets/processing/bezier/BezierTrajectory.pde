@@ -15,4 +15,8 @@ class BezierTrajectory {
         pos.y = bezierPoint(_v0.y, _v1.y, _v2.y, _v3.y, t);
         return pos;
     }
+
+    public PVector get_end_position() {
+        return _v3;
+    }
 };
