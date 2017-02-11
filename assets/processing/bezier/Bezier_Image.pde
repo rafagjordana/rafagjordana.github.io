@@ -1,7 +1,7 @@
 /* @pjs preload="images/rafa.png"; */
 
 /**** Configuration ********************************/
-/**/ final int number_of_particles = 800;
+/**/ final int number_of_particles = 500;
 /**/ final String image_path = "images/rafa.png";
 
 // BezierAnimation animation;
@@ -49,8 +49,9 @@ void draw() {
     for(int i=0; i<_number_of_particles; ++i) {
         _particles[i].draw();
     }
+
     _result.updatePixels();
-    _result.copy();
+    if (frameCount==1) _result.copy();
     image(_result,0,0);
 
     translate(-640,0);
@@ -128,7 +129,7 @@ class Particle{
 
         PVector start = new PVector(width/2, height/2);
         PVector random_dir = PVector.random2D();
-        float distance = min(height, width)*(1+random(0.5));
+        float distance = max(height, width)*(1+random(0.5));
         random_dir.mult(distance);
         start.add(random_dir);
         PVector dir_1 = new PVector(2*random(width)-width, 2*random(height)-height);
@@ -160,12 +161,14 @@ class Particle{
 
         float force = attractive_force - repulsive_force;
         _state = constrain(_state + force, 0, 1.03);
+
         if (_state ==1.03) {
             _active = false;
         }
         else {
             _active = true;
         }
+        
         if (_state > 1) {
             _alpha = floor(constrain(2550*(1.03 - _state), 1, 255));
         }
@@ -207,11 +210,10 @@ class Particle{
 
     float mouse_force() {
         PVector mouse = new PVector(mouseX-640, mouseY);
-        float dist = mouse.dist(get_position()) + 1;
+        float dist = mouse.dist(get_position()) + 20;
 
-        int multiplier = 1;
-        if (mousePressed == true) multiplier = 10;
-        return 40*multiplier/sq(dist);
+        if (mousePressed == false) return 1.0 / dist;
+        return 5.0/dist;
     }
 
     PVector get_end_position(){
