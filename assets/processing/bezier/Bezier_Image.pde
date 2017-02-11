@@ -4,121 +4,111 @@
 /**/ final int number_of_particles = 800;
 /**/ final String image_path = "images/rafa.png";
 
-
-BezierAnimation animation;
+// BezierAnimation animation;
 PImage test;
 parent.document.getElementById("bezier").setAttribute("style", "background-color:transparent; border:0px;");
+
+int _number_of_particles;
+PImage _input, _thresholded, _result;
+Particle _particles[];
+PVector _endpoints[];
+int _dimx, _dimy;
+int _particle_size = 5;
+ArrayList<int> _useful_pixels;
+float _t = 0;
+int _state = 0;
+
 void setup() {
     size(1680,400);
     background(255);
     frameRate(30);
-    animation = new BezierAnimation(number_of_particles, image_path);
+
+    // Bezier Animation
+    _number_of_particles = number_of_particles;
+    _input = loadImage(image_path);
+    _result = loadImage(image_path); //todo reuse input
+    _input.loadPixels();
+
+    _dimx = _input.width;
+    _dimy = _input.height;
+    _useful_pixels = new ArrayList<int>();
+    _result.loadPixels();
+    for (int i=0; i<_dimx*_dimy; ++i) {
+        _result.pixels[i] = (_input.pixels[i] & 0x00FFFFFF);
+    }
+    _result.updatePixels();
+    _input.updatePixels();
+    partition_image();
+    map_pixels_to_particles();
 }
 
 void draw() {
     background(255,0);
-	translate(640,0)
-    animation.draw();
-    translate(-640,0)
+    translate(640,0);
+
+    for(int i=0; i<_number_of_particles; ++i) {
+        _particles[i].draw();
+    }
+    _result.updatePixels();
+    _result.copy();
+    image(_result,0,0);
+
+    translate(-640,0);
 }
 
-class BezierAnimation {
-    // Member variables
-    private int _number_of_particles;
-    private PImage _input, _thresholded, _result;
-    private Particle _particles[];
-    private PVector _endpoints[];
-    private int _dimx, _dimy;
-    private int _particle_size = 5;
-    private ArrayList<int> _useful_pixels;
-    private float _t = 0;
-    private int _state = 0;
-
-    // Load and initialize stuff
-    BezierAnimation(int np, String image_path) {
-        
-        _number_of_particles = np;
-        _input = loadImage(image_path);
-        _result = loadImage(image_path); //todo reuse input
-        _input.loadPixels();
-
-        _dimx = _input.width;
-        _dimy = _input.height;
-        _useful_pixels = new ArrayList<int>();
-        _result.loadPixels();
-        for (int i=0; i<_dimx*_dimy; ++i) {
-            _result.pixels[i] = (_input.pixels[i] & 0x00FFFFFF);
+// Partition the image into parts represented by particles
+void partition_image() {
+    _particles = new Particle[_number_of_particles];
+    _endpoints = new Particle[_number_of_particles];
+    // Ignore white pixels
+    for (int i=0; i<_dimx*_dimy; ++i) {
+        if (_input.pixels[i] != -1) {
+            _useful_pixels.add(i);
         }
-        _result.updatePixels();
-        _input.updatePixels();
-        partition_image();
-        map_pixels_to_particles();
     }
 
-    void draw() {
-        for(int i=0; i<_number_of_particles; ++i) {
-            _particles[i].draw();
+    // Of the useful pixels, select _number_of_particles at random to act as endpoints
+    int particles_to_go = _number_of_particles;
+    for (int i=0; particles_to_go > 0; ++i) {
+        float chance = (float) particles_to_go / max((_useful_pixels.size()-i), 1);
+        if ( random(1) < chance ) {
+            PVector endpoint = coords_from_index(_useful_pixels.get(i));
+            color particle_color = _input.pixels[_useful_pixels.get(i)];
+            _particles[_number_of_particles - particles_to_go] = 
+                    new Particle(endpoint, particle_color, _particle_size, _result);
+            _endpoints[_number_of_particles - particles_to_go] = endpoint;
+            particles_to_go--;
         }
-        _result.updatePixels();
-        _result.copy()
-        image(_result,0,0);
     }
+}
 
-    // Partition the image into parts represented by particles
-    private void partition_image() {
-        _particles = new Particle[_number_of_particles];
-        _endpoints = new Particle[_number_of_particles];
-        // Ignore white pixels
-        for (int i=0; i<_dimx*_dimy; ++i) {
-            if (_input.pixels[i] != -1) {
-                _useful_pixels.add(i);
+// Premaps pixels to their closest particle.
+void map_pixels_to_particles() {
+    // @todo - done by brute force at the moment. Improve this.
+    for (int i = 0; i<_useful_pixels.size(); ++i) {
+        float min_dist = 99999999;
+        float curr_dist;
+        int closest_index = 0;
+        for (int j = 0; j<_number_of_particles; j++) {
+            curr_dist = 
+            (_endpoints[j].x-_useful_pixels.get(i) % _dimx) * (_endpoints[j].x-_useful_pixels.get(i) % _dimx) +
+            (_endpoints[j].y-_useful_pixels.get(i) / _dimx) * (_endpoints[j].y-_useful_pixels.get(i) / _dimx);
+
+            if (curr_dist < min_dist) {
+                min_dist = curr_dist;
+                closest_index = j;
             }
         }
-
-        // Of the useful pixels, select _number_of_particles at random to act as endpoints
-        int particles_to_go = _number_of_particles;
-        for (int i=0; particles_to_go > 0; ++i) {
-            float chance = (float) particles_to_go / max((_useful_pixels.size()-i), 1);
-            if ( random(1) < chance ) {
-                PVector endpoint = coords_from_index(_useful_pixels.get(i));
-                color particle_color = _input.pixels[_useful_pixels.get(i)];
-                _particles[_number_of_particles - particles_to_go] = 
-                        new Particle(endpoint, particle_color, _particle_size, _result);
-                _endpoints[_number_of_particles - particles_to_go] = endpoint;
-                particles_to_go--;
-            }
-        }
+        _particles[closest_index].add_dependent_pixel(_useful_pixels.get(i));
     }
+}
 
-    // Premaps pixels to their closest particle.
-    private void map_pixels_to_particles() {
-        // @todo - done by brute force at the moment. Improve this.
-        for (int i = 0; i<_useful_pixels.size(); ++i) {
-            float min_dist = 99999999;
-            float curr_dist;
-            int closest_index = 0;
-            for (int j = 0; j<_number_of_particles; j++) {
-                curr_dist = 
-                (_endpoints[j].x-_useful_pixels.get(i) % _dimx) * (_endpoints[j].x-_useful_pixels.get(i) % _dimx) +
-                (_endpoints[j].y-_useful_pixels.get(i) / _dimx) * (_endpoints[j].y-_useful_pixels.get(i) / _dimx);
-
-                if (curr_dist < min_dist) {
-                    min_dist = curr_dist;
-                    closest_index = j;
-                }
-            }
-            _particles[closest_index].add_dependent_pixel(_useful_pixels.get(i));
-        }
-    }
-
-    private PVector coords_from_index(int index) {
-        return new PVector(index % _dimx, index / _dimx);
-    }
-};
+PVector coords_from_index(int index) {
+    return new PVector(index % _dimx, index / _dimx);
+}
 
 class Particle{
     private PImage _result;
-    private BezierTrajectory _trajectory;
     public ArrayList<int> _dependent_pixels;
     private color _color;
     private float _nominal_size;
@@ -128,6 +118,7 @@ class Particle{
     private float _reference_state; //between 0 and 1.03
     private float _state;
     private int _alpha;
+    private PVector _v0, _v1, _v2, _v3;
 
     Particle(PVector end, color c, float size, PImage result) {
         _result = result;
@@ -142,8 +133,10 @@ class Particle{
         start.add(random_dir);
         PVector dir_1 = new PVector(2*random(width)-width, 2*random(height)-height);
         PVector dir_2 = new PVector(2*random(width)-width, 2*random(height)-height);
-        _trajectory = new BezierTrajectory(start, dir_1, dir_2, end);
-
+        _v0 = start;
+        _v1 = dir_1;
+        _v2 = dir_2;
+        _v3 = end;
         _speed = 2 + random(1);
     }
 
@@ -151,7 +144,7 @@ class Particle{
         float t = compute_state();
         update_dependent_pixels();
         if (_active){
-            PVector current_point = _trajectory.get_position( t );
+            PVector current_point = get_position_at( t );
             float   current_size  = _nominal_size * (1 + 5*(1 - t));
 
             stroke(_color);
@@ -222,26 +215,14 @@ class Particle{
     }
 
     PVector get_end_position(){
-        return _trajectory.get_position(1);
+        return _v3;
     }
 
     PVector get_position(){
-        return _trajectory.get_position(min(1, _state));
-    }
-};
-
-class BezierTrajectory {
-
-    private PVector _v0, _v1, _v2, _v3;
-
-    BezierTrajectory(PVector start, PVector dir1, PVector dir2, PVector end) {
-        _v0 = start;
-        _v1 = dir1;
-        _v2 = dir2;
-        _v3 = end;
+        return get_position_at(min(1, _state));
     }
 
-    public PVector get_position(float t) {
+    PVector get_position_at(float t) {
         PVector pos = new PVector();
         pos.x = bezierPoint(_v0.x, _v1.x, _v2.x, _v3.x, t);
         pos.y = bezierPoint(_v0.y, _v1.y, _v2.y, _v3.y, t);
