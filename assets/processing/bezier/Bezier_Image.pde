@@ -1,7 +1,7 @@
 /* @pjs preload="images/rafa.png"; */
 
 /**** Configuration ********************************/
-/**/ final int number_of_particles = 500;
+/**/ final int number_of_particles = 1000;
 /**/ final String image_path = "images/rafa.png";
 
 // BezierAnimation animation;
