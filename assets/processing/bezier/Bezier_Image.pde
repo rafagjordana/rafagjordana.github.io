@@ -57,7 +57,6 @@ if(window.DeviceMotionEvent){
 }
 
 if (window.DeviceMotionEvent != undefined) {
-      
     window.ondevicemotion = function(e) {
         _particle_size=20;
         test = 1;
@@ -98,7 +97,7 @@ void setup() {
 }
 
 void draw() {
-    background(255,0);
+    background(200);
     translate((width-_dimx)/2,0);
 
     mouse_outside_frame = !mouse_in_frame();
@@ -296,6 +295,5 @@ class Particle{
         pos.y = bezierPoint(_v0.y, _v1.y, _v2.y, _v3.y, t);
         return pos;
     }
-
     
 };
