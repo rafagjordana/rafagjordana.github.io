@@ -37,6 +37,7 @@ function orientation(event){
     + event.beta + ", "
     + event.gamma
   );
+  _particle_size=20;
 }
 
 void setup() {
