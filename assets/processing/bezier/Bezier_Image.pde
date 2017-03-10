@@ -13,10 +13,11 @@ PImage _input, _thresholded, _result;
 Particle _particles[];
 PVector _endpoints[];
 int _dimx, _dimy;
-int _particle_size = 6;
+int _particle_size = 5;
 ArrayList<int> _useful_pixels;
 float _t = 0;
 int _state = 0;
+boolean mouse_outside_frame = false;
 
 void setup() {
 
@@ -25,7 +26,7 @@ void setup() {
     || document.body.clientWidth;
     width = width - 100;
 
-    size(width,400);
+    size(width,450);
     background(255);
     frameRate(30);
 
@@ -52,6 +53,8 @@ void draw() {
     background(255,0);
     translate((width-_dimx)/2,0);
 
+    mouse_outside_frame = !mouse_in_frame();
+    println(mouse_outside_frame);
     for(int i=0; i<_number_of_particles; ++i) {
         _particles[i].draw();
     }
@@ -112,6 +115,14 @@ void map_pixels_to_particles() {
 
 PVector coords_from_index(int index) {
     return new PVector(index % _dimx, index / _dimx);
+}
+
+boolean mouse_in_frame(){
+    int margin = 5;
+    return (  mouseX < width-margin
+            && mouseX > margin
+            && mouseY > margin
+            && mouseY < height-margin );
 }
 
 class Particle{
@@ -215,10 +226,11 @@ class Particle{
     }
 
     float mouse_force() {
+        if (mouse_outside_frame) return 0;
         PVector mouse = new PVector(mouseX-(width-_dimx)/2, mouseY);
         float dist = mouse.dist(get_position()) + 20;
 
-        if (mousePressed == false) return 1.0 / dist;
+        if (!mousePressed) return 1.0 / dist;
         return 5.0/dist;
     }
 
@@ -236,4 +248,6 @@ class Particle{
         pos.y = bezierPoint(_v0.y, _v1.y, _v2.y, _v3.y, t);
         return pos;
     }
+
+    
 };
