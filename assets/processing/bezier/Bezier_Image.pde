@@ -5,7 +5,6 @@
 /**/ final String image_path = "images/rafa.png";
 
 // BezierAnimation animation;
-PImage test;
 parent.document.getElementById("bezier").setAttribute("style", "background-color:transparent; border:0px;");
 
 int _number_of_particles;
@@ -60,6 +59,7 @@ if (window.DeviceMotionEvent != undefined) {
     window.ondevicemotion = function(e) {
         _particle_size=20;
         test = 1;
+        println(test);
     }
 }
 
@@ -80,6 +80,7 @@ void setup() {
     // Bezier Animation
     _number_of_particles = number_of_particles;
     _input = loadImage(image_path);
+    _input.filter(THRESHOLD, 0.03); // Threshold white pixels
     _result = loadImage(image_path); //todo reuse input
     _input.loadPixels();
 
@@ -110,7 +111,6 @@ void draw() {
     image(_result,0,0);
 
     translate(-(width-_dimx)/2, 0);
-    println(test);
 }
 
 // Partition the image into parts represented by particles
