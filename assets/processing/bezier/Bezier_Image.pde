@@ -73,8 +73,7 @@ void setup() {
 }
 
 void draw() {
-    background(200,200,0);
-    if (isMobile) background(255,0,0);
+    background(255,0);
     translate((width-_dimx)/2,0);
 
     mouse_outside_frame = !mouse_in_frame();
