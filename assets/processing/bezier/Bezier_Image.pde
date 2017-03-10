@@ -54,7 +54,6 @@ void draw() {
     translate((width-_dimx)/2,0);
 
     mouse_outside_frame = !mouse_in_frame();
-    println(mouse_outside_frame);
     for(int i=0; i<_number_of_particles; ++i) {
         _particles[i].draw();
     }
