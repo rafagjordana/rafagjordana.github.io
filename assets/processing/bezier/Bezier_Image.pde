@@ -13,13 +13,19 @@ PImage _input, _thresholded, _result;
 Particle _particles[];
 PVector _endpoints[];
 int _dimx, _dimy;
-int _particle_size = 5;
+int _particle_size = 6;
 ArrayList<int> _useful_pixels;
 float _t = 0;
 int _state = 0;
 
 void setup() {
-    size(1680,400);
+
+    var width = window.innerWidth
+    || document.documentElement.clientWidth
+    || document.body.clientWidth;
+    width = width - 100;
+
+    size(width,400);
     background(255);
     frameRate(30);
 
@@ -44,7 +50,7 @@ void setup() {
 
 void draw() {
     background(255,0);
-    translate(640,0);
+    translate((width-_dimx)/2,0);
 
     for(int i=0; i<_number_of_particles; ++i) {
         _particles[i].draw();
@@ -54,7 +60,7 @@ void draw() {
     if (frameCount==1) _result.copy();
     image(_result,0,0);
 
-    translate(-640,0);
+    translate(-(width-_dimx)/2,0);
 }
 
 // Partition the image into parts represented by particles
