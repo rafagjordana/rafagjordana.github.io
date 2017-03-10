@@ -13,11 +13,13 @@ PImage _input, _result;
 Particle _particles[];
 PVector _endpoints[];
 int _dimx, _dimy;
-int _particle_size = 5;
+var _particle_size = 5;
 ArrayList<int> _useful_pixels;
 float _t = 0;
 int _state = 0;
 boolean mouse_outside_frame = false;
+
+int test = 0;
 
 var isMobile = false; //initiate as false
 
@@ -30,14 +32,13 @@ function orientation(event){
     + event.beta + ", "
     + event.gamma
   );
-  _particle_size=20;
 }
 
 if(window.DeviceOrientationEvent){
+    // Firefox entra aqui
   window.addEventListener("deviceorientation", orientation, false);
 }else{
   console.log("DeviceOrientationEvent is not supported");
-  println("hi Jo");
 }
 
 
@@ -47,13 +48,20 @@ function motion(event){
     + event.accelerationIncludingGravity.y + ", "
     + event.accelerationIncludingGravity.z
   );
-  _particle_size=20;
 }
 
 if(window.DeviceMotionEvent){
   window.addEventListener("devicemotion", motion, false);
 }else{
   console.log("DeviceMotionEvent is not supported");
+}
+
+if (window.DeviceMotionEvent != undefined) {
+      
+    window.ondevicemotion = function(e) {
+        _particle_size=20;
+        test = 1;
+    }
 }
 
 void setup() {
@@ -103,6 +111,7 @@ void draw() {
     image(_result,0,0);
 
     translate(-(width-_dimx)/2, 0);
+    println(test);
 }
 
 // Partition the image into parts represented by particles
