@@ -215,7 +215,7 @@ class Particle{
     }
 
     float mouse_force() {
-        PVector mouse = new PVector(mouseX-640, mouseY);
+        PVector mouse = new PVector(mouseX-(width-_dimx/2), mouseY);
         float dist = mouse.dist(get_position()) + 20;
 
         if (mousePressed == false) return 1.0 / dist;
