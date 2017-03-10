@@ -117,7 +117,7 @@ PVector coords_from_index(int index) {
 }
 
 boolean mouse_in_frame(){
-    int margin = 5;
+    int margin = 15;
     return (  mouseX < width-margin
             && mouseX > margin
             && mouseY > margin
