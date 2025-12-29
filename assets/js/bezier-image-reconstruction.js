@@ -63,7 +63,7 @@ class BezierParticle {
             const curY = (this.ay * t3) + (this.by * t2) + (this.cy * t) + this.y0;
 
             const dx = (mouseX - this.parent.offsetX) - curX;
-            const dy = mouseY - curY;
+            const dy = (mouseY - this.parent.offsetY) - curY;
             // Simplified distance check (avoid expensive sqrt if possible, but 1/dist needs it)
             // We'll keep sqrt for accuracy in force magnitude
             const dist = Math.sqrt(dx * dx + dy * dy) + 20;
@@ -110,7 +110,7 @@ class BezierParticle {
 }
 
 class BezierAnimation {
-    constructor(canvasId, imagePath, numParticles = 500) {
+    constructor(canvasId, imagePath, numParticles = 3000) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
@@ -119,8 +119,9 @@ class BezierAnimation {
 
         this.particles = [];
         this.width = 0;
-        this.height = 450;
+        this.height = 0;
         this.offsetX = 0;
+        this.offsetY = 0;
 
         this.mouseX = 0;
         this.mouseY = 0;
@@ -149,11 +150,13 @@ class BezierAnimation {
     }
 
     resize() {
-        this.width = window.innerWidth - 100;
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
         this.canvas.width = this.width;
         this.canvas.height = this.height;
         if (this.img.width) {
             this.offsetX = (this.width - this.img.width) / 2;
+            this.offsetY = (this.height - this.img.height) / 2;
         }
     }
 
@@ -210,21 +213,60 @@ class BezierAnimation {
             endpoints.push(particle);
         }
 
-        // Map pixels to closest particle (Optimized)
+        // Efficient Pixel Mapping using Spatial Partitioning (Grid)
+        // Complexity: O(N) instead of O(N*P)
+        const gridSize = 40;
+        const grid = {};
+
+        // 1. Populate Grid with Particles
+        this.particles.forEach(p => {
+            const key = `${Math.floor(p.end.x / gridSize)},${Math.floor(p.end.y / gridSize)}`;
+            if (!grid[key]) grid[key] = [];
+            grid[key].push(p);
+        });
+
+        // 2. Map Pixels to Closest Particle (checking only neighbors)
         usefulPixels.forEach(px => {
+            const gx = Math.floor(px.x / gridSize);
+            const gy = Math.floor(px.y / gridSize);
+
             let minDist = Infinity;
             let closest = null;
 
-            // For 500 particles, brute force is fast enough in JS
-            for (let p of this.particles) {
-                const dx = p.end.x - px.x;
-                const dy = p.end.y - px.y;
-                const distSq = dx * dx + dy * dy;
-                if (distSq < minDist) {
-                    minDist = distSq;
-                    closest = p;
+            // Search current cell and 8 neighbors
+            for (let xx = gx - 1; xx <= gx + 1; xx++) {
+                for (let yy = gy - 1; yy <= gy + 1; yy++) {
+                    const key = `${xx},${yy}`;
+                    if (grid[key]) {
+                        for (let p of grid[key]) {
+                            const dx = p.end.x - px.x;
+                            const dy = p.end.y - px.y;
+                            const distSq = dx * dx + dy * dy;
+                            if (distSq < minDist) {
+                                minDist = distSq;
+                                closest = p;
+                            }
+                        }
+                    }
                 }
             }
+
+            // Fallback: If no particle found in neighbors (rare, but possible in sparse areas), 
+            // search a wider area or just skip (skipping is fine for visual redundancy)
+            // But let's do a quick global fallback if nothing found solely to avoid orphaned pixels
+            if (!closest) {
+                // Expanded search (brute force fallback for orphans)
+                for (let p of this.particles) {
+                    const dx = p.end.x - px.x;
+                    const dy = p.end.y - px.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < minDist) {
+                        minDist = distSq;
+                        closest = p;
+                    }
+                }
+            }
+
             if (closest) closest.dependentPixels.push(px);
         });
 
@@ -243,7 +285,7 @@ class BezierAnimation {
         }
 
         this.ctx.save();
-        this.ctx.translate(this.offsetX, 0);
+        this.ctx.translate(this.offsetX, this.offsetY);
 
         this.particles.forEach(p => {
             p.update(this.mouseX, this.mouseY, this.isMouseDown, this.isOutside);

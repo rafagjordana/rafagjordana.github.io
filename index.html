@@ -19,10 +19,11 @@
         }
 
         #bezier-container {
-            width: 100%;
-            max-width: 1200px;
+            width: 100vw;
+            height: 100vh;
             display: flex;
             justify-content: center;
+            align-items: center;
         }
 
         canvas {
@@ -42,7 +43,7 @@
     <script>
         window.addEventListener('load', () => {
             // Using the same image path and canvas ID
-            initBezierAnimation('bezier-canvas', 'assets/images/rafa.png');
+            initBezierAnimation('bezier-canvas', 'assets/images/pic03.jpg');
         });
     </script>
 </body>
