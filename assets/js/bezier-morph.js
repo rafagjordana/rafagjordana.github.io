@@ -171,8 +171,13 @@ class MorphAnimation {
         const data = tempCtx.getImageData(0, 0, img.width, img.height).data;
 
         const pixels = [];
-        const offX = (window.innerWidth - img.width) / 2;
-        const offY = (window.innerHeight - img.height) / 2;
+
+        // Dynamic Scale Calculation
+        // Fit within 90% of viewport
+        const scale = Math.min(1, (window.innerWidth * 0.9) / img.width, (window.innerHeight * 0.9) / img.height);
+
+        const offX = (window.innerWidth - img.width * scale) / 2;
+        const offY = (window.innerHeight - img.height * scale) / 2;
 
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i];
@@ -181,9 +186,12 @@ class MorphAnimation {
             // Filter white
             const isWhite = r > 240 && g > 240 && b > 240;
             if (!isWhite && data[i + 3] > 0) {
+                // Apply Scale
+                const x = ((i / 4) % img.width) * scale + offX;
+                const y = Math.floor((i / 4) / img.width) * scale + offY;
+
                 pixels.push({
-                    x: (i / 4) % img.width + offX,
-                    y: Math.floor((i / 4) / img.width) + offY,
+                    x, y,
                     r, g, b,
                     index: i / 4
                 });
