@@ -6,21 +6,40 @@
 class BezierParticle {
     constructor(endPos, color, size, parent) {
         this.parent = parent;
-        this.end = { x: endPos.x, y: endPos.y };
         this.color = color; // {r, g, b}
         this.nominalSize = size;
         this.dependentPixels = [];
 
         // Bezier Control Points
-        const start = {
-            x: parent.width / 2 + (Math.random() - 0.5) * parent.width * 2.5,
-            y: parent.height / 2 + (Math.random() - 0.5) * parent.height * 2.5
-        };
+        // We pre-calculate coefficients to avoid expensive math per frame
+        const startX = parent.width / 2 + (Math.random() - 0.5) * parent.width * 2.5;
+        const startY = parent.height / 2 + (Math.random() - 0.5) * parent.height * 2.5;
 
-        this.v0 = start;
-        this.v1 = { x: (Math.random() - 0.5) * parent.width * 2, y: (Math.random() - 0.5) * parent.height * 2 };
-        this.v2 = { x: (Math.random() - 0.5) * parent.width * 2, y: (Math.random() - 0.5) * parent.height * 2 };
-        this.v3 = this.end;
+        const v1x = (Math.random() - 0.5) * parent.width * 2;
+        const v1y = (Math.random() - 0.5) * parent.height * 2;
+        const v2x = (Math.random() - 0.5) * parent.width * 2;
+        const v2y = (Math.random() - 0.5) * parent.height * 2;
+
+        const endX = endPos.x;
+        const endY = endPos.y;
+        this.end = { x: endX, y: endY };
+
+        // Store start position for the formula
+        this.x0 = startX;
+        this.y0 = startY;
+        // Store end position for distance checks
+        this.endX = endX;
+        this.endY = endY;
+
+        // Calculate Cubic Bezier Coefficients
+        // x(t) = ax*t^3 + bx*t^2 + cx*t + x0
+        this.cx = 3 * (v1x - startX);
+        this.bx = 3 * (v2x - v1x) - this.cx;
+        this.ax = endX - startX - this.cx - this.bx;
+
+        this.cy = 3 * (v1y - startY);
+        this.by = 3 * (v2y - v1y) - this.cy;
+        this.ay = endY - startY - this.cy - this.by;
 
         this.speed = 2 + Math.random();
         this.state = 0;
@@ -30,26 +49,35 @@ class BezierParticle {
     }
 
     update(mouseX, mouseY, isMouseDown, isOutside) {
+        // 1. Calculate next state
         const attractiveForce = (this.speed - this.state) / 400;
         let repulsiveForce = 0;
 
         if (this.completedFirst && !isOutside) {
-            const pos = this.getPosition();
-            const dx = (mouseX - this.parent.offsetX) - pos.x;
-            const dy = mouseY - pos.y;
+            // Inline Position Calculation for Repulsion Check
+            const t = Math.min(1, this.state);
+            const t2 = t * t;
+            const t3 = t2 * t;
+
+            const curX = (this.ax * t3) + (this.bx * t2) + (this.cx * t) + this.x0;
+            const curY = (this.ay * t3) + (this.by * t2) + (this.cy * t) + this.y0;
+
+            const dx = (mouseX - this.parent.offsetX) - curX;
+            const dy = mouseY - curY;
+            // Simplified distance check (avoid expensive sqrt if possible, but 1/dist needs it)
+            // We'll keep sqrt for accuracy in force magnitude
             const dist = Math.sqrt(dx * dx + dy * dy) + 20;
             repulsiveForce = (isMouseDown ? 5.0 : 1.0) / dist;
         }
 
         const force = attractiveForce - repulsiveForce;
-        this.state = Math.max(0, Math.min(1.03, this.state + force));
+        // Allows particles to be pushed indefinitely away
+        this.state = Math.min(1.03, this.state + force);
 
-        if (this.state >= 1.03) {
-            this.isActive = false;
-        } else {
-            this.isActive = true;
-        }
+        // 2. Update Active State
+        this.isActive = (this.state < 1.03);
 
+        // 3. Update Alpha
         if (this.state > 1) {
             this.alpha = Math.floor(Math.max(1, Math.min(255, 2550 * (1.03 - this.state))));
             this.completedFirst = true;
@@ -58,32 +86,25 @@ class BezierParticle {
         }
     }
 
-    getPosition() {
-        const t = Math.min(1, this.state);
-        const cx = 3 * (this.v1.x - this.v0.x);
-        const bx = 3 * (this.v2.x - this.v1.x) - cx;
-        const ax = this.v3.x - this.v0.x - cx - bx;
-
-        const cy = 3 * (this.v1.y - this.v0.y);
-        const by = 3 * (this.v2.y - this.v1.y) - cy;
-        const ay = this.v3.y - this.v0.y - cy - by;
-
-        const x = (ax * Math.pow(t, 3)) + (bx * Math.pow(t, 2)) + (cx * t) + this.v0.x;
-        const y = (ay * Math.pow(t, 3)) + (by * Math.pow(t, 2)) + (cy * t) + this.v0.y;
-
-        return { x, y };
-    }
-
     draw(ctx) {
         if (!this.isActive) return;
 
-        const pos = this.getPosition();
         const t = Math.min(1, this.state);
-        const currentSize = this.nominalSize * (1 + 5 * (1 - t));
+        // Optimization: Unroll Math.pow
+        const t2 = t * t;
+        const t3 = t2 * t;
+
+        const x = (this.ax * t3) + (this.bx * t2) + (this.cx * t) + this.x0;
+        const y = (this.ay * t3) + (this.by * t2) + (this.cy * t) + this.y0;
+
+        // Ensure size doesn't explode if t becomes very negative
+        const sizeFactor = Math.max(0, 1 - t);
+        const currentSize = this.nominalSize * (1 + 5 * sizeFactor);
 
         ctx.fillStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.alpha / 255})`;
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, currentSize / 2, 0, Math.PI * 2);
+        // arc is relatively expensive, could use rect for tiny particles if needed, but arc is nicer
+        ctx.arc(x, y, currentSize / 2, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -228,7 +249,8 @@ class BezierAnimation {
             p.update(this.mouseX, this.mouseY, this.isMouseDown, this.isOutside);
 
             // Update the dependent pixels in the buffer
-            const revealAlpha = p.state < 1 ? 0 : (255 - p.alpha);
+            let revealAlpha = p.state < 1 ? 0 : (255 - p.alpha);
+
             p.dependentPixels.forEach(px => {
                 const idx = px.index * 4;
                 data[idx] = px.r;
