@@ -110,7 +110,7 @@ class BezierParticle {
 }
 
 class BezierAnimation {
-    constructor(canvasId, imagePath, numParticles = 3000) {
+    constructor(canvasId, imagePath, numParticles = 1000) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });

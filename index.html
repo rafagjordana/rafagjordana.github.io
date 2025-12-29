@@ -38,12 +38,13 @@
         <canvas id="bezier-canvas"></canvas>
     </div>
 
+    <!-- Slider Removed for Automatic Loop -->
+
     <!-- Scripts -->
-    <script src="assets/js/bezier-image-reconstruction.js"></script>
+    <script src="assets/js/bezier-morph.js"></script>
     <script>
         window.addEventListener('load', () => {
-            // Using the same image path and canvas ID
-            initBezierAnimation('bezier-canvas', 'assets/images/pic03.jpg');
+            initMorphAnimation('bezier-canvas', 'assets/images/chica.png', 'assets/images/yogi.png');
         });
     </script>
 </body>
